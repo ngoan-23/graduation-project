@@ -386,3 +386,26 @@ table.dataTable thead .sorting:after {
 .panel-yellow a:hover {
     color: #df8a13;
 }
+.container-search {
+    display: flex; 
+    height: 6rem;
+}
+@media(max-width:458px) {
+    .container-search {
+        min-height: 18rem;
+        display: grid
+    }
+    .container-filter {
+        margin-bottom: 2rem;
+        position: unset;
+    }
+}
+@media(max-width:280px) {
+    .container-search {
+        height: 16rem;
+    }
+}
+.col-md-9 table {
+    overflow: auto; 
+    display: block;
+}

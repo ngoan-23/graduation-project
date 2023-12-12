@@ -5,7 +5,7 @@ Danh sách Slide
 @section('content')
  <!-- Page Content -->
         <div id="page-wrapper">
-            <div class="container-fluid">
+            <div class="container-fluid" style="overflow-x: auto">
                 <div class="row">
                     <div class="col-lg-12">
                         <h1 class="page-header">Slide
@@ -20,50 +20,48 @@ Danh sách Slide
 
                     @endif
 
-{{-- Kiểm tra dữ liệu của bảng nếu k có thì in ra Bảng hiện có dữ liệu --}}
-@if(count($slide) == 0)
-<tr>Bảng hiện tại chưa có dữ liệu</tr>
-@endif
+                {{-- Kiểm tra dữ liệu của bảng nếu k có thì in ra Bảng hiện có dữ liệu --}}
+                @if(count($slide) == 0)
+                <tr>Bảng hiện tại chưa có dữ liệu</tr>
+                @endif
 
-<?php
-//Cách xuất STT
-$i = 1;
-if (isset($_GET['page']) && $_GET['page'] != 1) {
-	$i = (($_GET['page'] - 1) * 10) + 1;
-}
-?>
-                    <table class="table table-striped table-bordered table-hover" id="dataTables-example">
-                        <thead>
-                            <tr align="center">
-                                <th>STT</th>
-                                <th>Tên</th>
-                                <th>Hình</th>
-                                <th>Link</th>
-                                <th>Xoá</th>
-                                <th>Sửa</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($slide as $sd)
-                            <tr class="odd gradeX" align="center">
-                                <td>{{ $i }}</td><?php $i++;?>
-                                <td>{{ $sd->name }}</td>
-                                <td>
-                                    <p>
-                                        <img width="500px" height="auto" src="image/{{ $sd->hinhanh }}">
-                                    </p>
-                                </td>
-                                <td>{{ $sd->link }}</td>
-                                <td class="center"><i class="fa fa-trash-o  fa-fw"></i><a href="admin/slide/xoa/{{ $sd->id }}">Xoá</a></td>
-                                <td class="center"><i class="fa fa-pencil fa-fw"></i> <a href="admin/slide/sua/{{ $sd->id }}">Sửa</a></td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-                <!-- /.row -->
+                <?php
+                //Cách xuất STT
+                $i = 1;
+                if (isset($_GET['page']) && $_GET['page'] != 1) {
+                    $i = (($_GET['page'] - 1) * 10) + 1;
+                }
+                ?>
+                <table class="table table-striped table-bordered table-hover" id="dataTables-example">
+                    <thead>
+                        <tr align="center">
+                            <th width="10%">STT</th>
+                            <th width="20%">Tên</th>
+                            <th width="30%">Hình</th>
+                            <th width="20%">Link</th>
+                            <th width="10%">Xoá</th>
+                            <th width="10%">Sửa</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($slide as $sd)
+                        <tr class="odd gradeX" align="center">
+                            <td>{{ $i }}</td><?php $i++;?>
+                            <td>{{ $sd->name }}</td>
+                            <td>
+                                <p><img width="100%" height="auto" src="image/{{ $sd->hinhanh }}"></p>
+                            </td>
+                            <td>{{ $sd->link }}</td>
+                            <td class="center"><i class="fa fa-trash-o fa-fw"></i><a href="admin/slide/xoa/{{ $sd->id }}">Xoá</a></td>
+                            <td class="center"><i class="fa fa-pencil fa-fw"></i> <a href="admin/slide/sua/{{ $sd->id }}">Sửa</a></td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
-            <!-- /.container-fluid -->
+            <!-- /.row -->
         </div>
-        <!-- /#page-wrapper -->
+        <!-- /.container-fluid -->
+    </div>
+    <!-- /#page-wrapper -->
 @endsection

@@ -21,9 +21,9 @@
                                 <li>
                                     <a href="admin/congvan/danhsach">Danh sách công văn</a>
                                 </li>
-                                <li>
+                                {{-- <li>
                                     <a href="admin/congvan/them">Thêm công văn</a>
-                                </li>
+                                </li> --}}
                                 <li>
                                     <a href="admin/congvan/thongke">Thống kê công văn</a>
                                 </li>

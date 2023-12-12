@@ -4,7 +4,7 @@ Thống kê Công Văn
 @endsection
 @section('content')
 <div id="page-wrapper">
-    <div class="container-fluid">
+    <div class="container-fluid" style="padding: 0 !important; ">
         <div  style="color: crimson">
             <h1 class="page-header">Thống kê Công Văn
             </h1><br>

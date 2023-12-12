@@ -22,7 +22,7 @@ Danh sách Công văn
                             <small>danh sách</small>
                         </h1>
                     </div>
-                    <div style="display: flex; height: 6rem;">
+                    <div class="container-search">
                         @if ($chucvu == 3)
                             <div>
                                 <a href="admin/congvan/them"><span class="btn">Thêm</span></a>
@@ -35,7 +35,7 @@ Danh sách Công văn
                                     @foreach ($dsphongban as $phongban)
                                         <option value="{{ $phongban->id }}" {{ request()->department == $phongban->id ? 'selected' : '' }}>{{ $phongban->name }}</option>
                                     @endforeach
-                                </select>
+                                </select> ~ 
                                 <select name="dispatch" class="form-select-lcv" > 
                                     <option value="" selected>Loại công văn</option>
                                     @foreach ($dsloaihinhcongvan as $loaiphongban)
@@ -66,7 +66,7 @@ Danh sách Công văn
                         </div>
 
                     @endif
-                    <table class="table table-striped table-bordered table-hover" id="">
+                    <table class="table table-striped table-bordered table-hover" id="" style="display: block; overflow-x: auto;">
                         <thead>
                             <tr align="center">
                                 <th width="1%">STT</th>
@@ -148,7 +148,7 @@ Danh sách Công văn
                             @endforeach
                         </tbody>
                     </table>
-                    {{$congvan->appends(request()->all())->links()}}  
+                    {{$congvan->appends(request()->all())->links()}}
                 </div>
                 <!-- /.row -->
             </div>
