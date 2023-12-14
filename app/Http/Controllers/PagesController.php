@@ -89,7 +89,7 @@ class PagesController extends Controller {
 			}
 		} 
 		else {
-			$congvantrangchu = CongVan::orderBy('ngayky', 'desc')->paginate(10);
+			$congvantrangchu = CongVan::where('is_active' , 1)->where('congkhai' , 1)->orderBy('ngayky', 'desc')->paginate(10);
 		}
 		return view('pages.trangchu', ['congvantrangchu' => $congvantrangchu]);
 	}

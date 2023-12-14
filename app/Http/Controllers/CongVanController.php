@@ -18,13 +18,31 @@ use Illuminate\Support\Facades\DB;
 
 class CongVanController extends Controller {
 	public function getDanhSach(Request $request) {
-		$dscongvan = CongVan::with(['phongban', 'users']);
+
+		$phongBan = PhongBan::whereHas('users', function ($query) {
+			$query->where('users.id', auth()->id());
+		}, '>', 0)->first();
+
+		if($phongBan) {
+			$phongBan_id = $phongBan->id;
+			$dscongvan = CongVan::where(function ($query) use ($phongBan_id) {
+				$query->whereHas('phongban', function ($query) use ($phongBan_id) {
+					$query->where('phongban.id', $phongBan_id);
+					})
+					->where('id', '!=', null);
+					// ->orWhere('idloaihinhcongvan', 4);
+			});
+		} else {
+			$dscongvan = CongVan::with(['phongban', 'users']);
+		}
+
 		$dsphongban = PhongBan::all();
 		$dsloaihinhcongvan = LoaiHinhCongVan::all();
 		$phongban = User_PhongBan_ChucVu::where('user_id', auth()->user()->id)->first();
 		if(!empty($phongban)) {
 			$chucvu = $phongban->chucvu_id;
 		}
+		//Chức năng filter
 		if (!empty($request->department)) {
 			$dscongvan->whereHas('phongban', function ($query) use ($request) {
 				$query->where('phongban.id', $request->department);
@@ -210,13 +228,21 @@ class CongVanController extends Controller {
 			$user_congvan->save();
 		}
 
+		$phongBan = PhongBan::whereHas('users', function ($query) {
+			$query->where('users.id', auth()->id());
+		}, '>', 0)->first();
+
 		//thêm dữ liệu vào bảng trung gian công văn - phòng ban
 		if($request->PhongBan) {
 			$congvan_phongban = new CongVanPhongBan;
 			$congvan_phongban->congvan_id = $congvan->id;
 			$congvan_phongban->phongban_id = $request->PhongBan;
-			$congvan_phongban->save();
+		} else {
+			$congvan_phongban = new CongVanPhongBan;
+			$congvan_phongban->congvan_id = $congvan->id;
+			$congvan_phongban->phongban_id = $phongBan->id;
 		}
+		$congvan_phongban->save();
 
 		return redirect('admin/congvan/them')->with('thongbao', 'Thêm thành công');
 
@@ -301,13 +327,22 @@ class CongVanController extends Controller {
 			$user_congvan->nguoiky_id = $request->nguoiky;
 			$user_congvan->save();
 		}
+
+		$phongBan = PhongBan::whereHas('users', function ($query) {
+			$query->where('users.id', auth()->id());
+		}, '>', 0)->first();
+
 		//thêm dữ liệu vào bảng trung gian công văn - phòng ban
 		if($request->PhongBan) {
 			$congvan_phongban = new CongVanPhongBan;
 			$congvan_phongban->congvan_id = $congvan->id;
 			$congvan_phongban->phongban_id = $request->PhongBan;
-			$congvan_phongban->save();
+		} else {
+			$congvan_phongban = new CongVanPhongBan;
+			$congvan_phongban->congvan_id = $congvan->id;
+			$congvan_phongban->phongban_id = $phongBan->id;
 		}
+		$congvan_phongban->save();
 
 		return redirect('admin/congvan/sua/' . $id)->with('thongbao', 'Sửa thành công');
 

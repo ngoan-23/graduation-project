@@ -17,17 +17,18 @@ class SlideController extends Controller {
 	}
 
 	public function postThem(Request $request) {
-		// $this->validate($request,
-		// 	[
+		$this->validate($request,
+			[
+				'name' => 'required',
+				'link' => 'required',
+				'hinhanh' => 'required'
+			],
+			[
+				'name.required' => 'Bạn chưa nhập tên ',
+				'link.required' => 'Bạn chưa nhập link',
+				'hinhanh' => 'Bạn chưa chọn slide',
 
-		// 		'hinhanh' => 'required',
-
-		// 	],
-		// 	[
-		// 		'Ten.required' => 'Bạn chưa nhập tên ',
-		// 		'NoiDung.required' => 'Bạn chưa nhập nội dung',
-
-		// 	]);
+			]);
 		$slide = new Slide;
 		$slide->name = $request->name;
 		if ($request->has('link')) {
@@ -67,6 +68,16 @@ class SlideController extends Controller {
 	}
 
 	public function postSua(Request $request, $id) {
+		$this->validate($request,
+			[
+				'name' => 'required',
+				'link' => 'required',
+			],
+			[
+				'name.required' => 'Bạn chưa nhập tên ',
+				'link.required' => 'Bạn chưa nhập link',
+
+			]);
 		$slide = Slide::find($id);
 		$slide->name = $request->name;
 		if ($request->has('link')) {

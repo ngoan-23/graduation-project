@@ -28,44 +28,52 @@
 
     <div class="container">
         <div class="row">
-            <div class="col-md-4 col-md-offset-4">
-
-                <div class="login-panel panel panel-default">
-                    <h4 style="text-align: center;font-size: 25px;color: #1a5b20;font-weight: bold;text-transform: uppercase;letter-spacing: 3px;text-shadow: 5px 1px 5px rgba(0, 255, 184, 0.59);">Đăng Nhập</h4>
-                    @if(count($errors)>0)
-                        <div class="alert-danger">
-                            @foreach($errors->all() as $err)
-                                {{ $err }}<br>
-                            @endforeach
-                        </div>
-                    @endif
-                    @if(session('loi'))
-                        <div class="alert alert-danger">
-                            {{ session('loi') }}
-                        </div>
-
-                    @endif
-                    @if(session('thongbao'))
-                        <div class="alert alert-success">
-                            {{ session('thongbao') }}
-                        </div>
-
-                    @endif
-                    <div class="panel-heading">
-                        <h3 class="panel-title">Vui lòng đăng nhập</h3>
+            <div class="col-md-6">
+                <img src="https://preview.colorlib.com/theme/bootstrap/login-form-07/images/undraw_remotely_2j6y.svg" alt="Image" class="img-fluid">
+            </div>
+            <div class="col-md-6 contents">
+                @if(count($errors)>0)
+                    <div class="alert-danger">
+                        @foreach($errors->all() as $err)
+                            {{ $err }}<br>
+                        @endforeach
                     </div>
-                    <div class="panel-body">
+                @endif
+                @if(session('loi'))
+                    <div class="alert alert-danger">
+                        {{ session('loi') }}
+                    </div>
+                @endif
+                @if(session('thongbao'))
+                    <div class="alert alert-success">
+                        {{ session('thongbao') }}
+                    </div>
+
+                @endif
+                <div class="row justify-content-center">
+                    <div class="col-md-8">
+                    <div class="mb-4">
+                        <h3>Sign In</h3>
+                        <p class="mb-4">Lorem ipsum dolor sit amet elit. Sapiente sit aut eos consectetur adipisicing.</p>
+                    </div>
                         <form role="form" action="dangnhap" method="POST">
                             <input type="hidden" name="_token" value="{{ csrf_token() }}">
-                            <fieldset>
-                                <div class="form-group">
-                                    <input class="form-control" placeholder="E-mail" name="email" type="email" autofocus>
-                                </div>
-                                <div class="form-group">
-                                    <input class="form-control" placeholder="Password" name="password" type="password" value="">
-                                </div>
-                                <button type="submit" class="btn btn-lg btn-success btn-block">Đăng nhập</button>
-                            </fieldset>
+                            <div class="form-group first">
+                                <label for="username">Email</label>
+                                <input type="text" placeholder="Email" class="form-control" name="email" type="email" id="username">
+                            </div>
+                                <div class="form-group last mb-4">
+                                <label for="password">Password</label>
+                                <input type="password" placeholder="Password" class="form-control" name="password" value="" id="password">
+                            </div>
+                            <div class="d-flex mb-5 align-items-center">
+                                <label class="control control--checkbox mb-0"><span class="caption">Remember me</span>
+                                    <input type="checkbox" checked="checked">
+                                    <div class="control__indicator"></div>
+                                </label>
+                                <span class="ml-auto"><a href="#" class="forgot-pass">Forgot Password</a></span>
+                            </div>
+                            <input type="submit" value="Log In" class="btn btn-block btn-primary">
                         </form>
                     </div>
                 </div>

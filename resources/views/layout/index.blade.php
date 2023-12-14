@@ -63,8 +63,12 @@
 <body>
     <div class="container" style="margin: 0 auto; width: auto; padding: 0;">
     @include('layout.header')
-
-    @include('layout.slider')
+    
+    @if ($_SERVER['REQUEST_URI'] != "/lienhe" && $_SERVER['REQUEST_URI'] != "/gioithieu")
+        @include('layout.slider')
+    @else
+        <div class="container" style="margin: 2.5rem auto; width: auto; padding: 0;"></div>
+    @endif
 
     <div class="space20"></div>
 
