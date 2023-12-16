@@ -15,6 +15,7 @@ use App\Models\User_PhongBan_ChucVu;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class CongVanController extends Controller {
 	public function getDanhSach(Request $request) {
@@ -75,25 +76,44 @@ class CongVanController extends Controller {
 		$year = date('Y');
 		$months = range(1, 12);
 
-		$thongKeCongVan = [];
-
-		foreach ($months as $month) {
-			$results = CongVan::select(
-					'idloaihinhcongvan',
-					DB::raw('COUNT(id) as totalCongVan')
-				)
-				->whereYear('ngaylap', $year)
-				->whereMonth('ngaylap', $month)
-				->groupBy('idloaihinhcongvan')
-				->get();
-
-			$thongKeCongVan[$month] = [];
-
-			foreach ($results as $result) {
-				$thongKeCongVan[$month][$result->idloaihinhcongvan] = [
-					'totalCongVan' => $result->totalCongVan,
-				];
+			if (Auth::user() && Auth::user()->level != 2) {
+				$userId = auth()->id();
+				$phongBan = PhongBan::whereHas('users', function ($query) use ($userId) {
+					$query->where('users.id', $userId);
+				}, '>', 0)->first();
+				$phongBan_id = $phongBan->id;
+				foreach ($months as $month) {
+					$dsCongVan = CongVan::where(function ($query) use ($phongBan_id, $year, $month) {
+						$query->whereHas('phongban', function ($query) use ($phongBan_id) {
+							$query->where('phongban.id', $phongBan_id);
+						})
+						->whereYear('ngaylap', $year)
+						->whereMonth('ngaylap', $month)
+						->get();
+					});
+					$results = $dsCongVan->groupBy('idloaihinhcongvan')
+						->select('idloaihinhcongvan', DB::raw('COUNT(id) as totalCongVan'))
+						->get();
+				}
+			} else {
+				foreach ($months as $month) {
+					$results = CongVan::select(
+							'idloaihinhcongvan',
+							DB::raw('COUNT(id) as totalCongVan')
+						)
+						->whereYear('ngaylap', $year)
+						->whereMonth('ngaylap', $month)
+						->groupBy('idloaihinhcongvan')
+						->get();
+				}
 			}
+
+		$thongKeCongVan[$month] = [];
+
+		foreach ($results as $result) {
+			$thongKeCongVan[$month][$result->idloaihinhcongvan] = [
+				'totalCongVan' => $result->totalCongVan,
+			];
 		}
 
 		return view('admin.congvan.thongke', [
@@ -135,115 +155,116 @@ class CongVanController extends Controller {
 	}
 
 	public function postThem(Request $request) {
-		$this->validate($request,
-			[
-				'sohieu' => 'required|min:3|max:15',
+		DB::transaction(function () use ($request) {
+			$this->validate($request,
+				[
+					'sohieu' => 'required|min:3|max:15',
 
-				'trichyeunoidung' => 'required|min:5|max:100',
+					'trichyeunoidung' => 'required|min:5|max:100',
 
-				'taptindinhkem' => 'required|image|mimes:jpeg,png,jpg,pdf|max:2048', 
+					'taptindinhkem' => 'required|image|mimes:jpeg,png,jpg,pdf|max:2048', 
 
-				'ngaylap' => 'after_or_equal:today',
+					'ngaylap' => 'after_or_equal:today',
 
-				'ngayky' => [
-					
+					'ngayky' => [
+						
+						function ($attribute, $value, $fail) use ($request) {
+							if (!(strtotime($request->ngaylap) <= strtotime($value))) {
+								$fail('Ngày ký phải lớn hơn hoặc bằng ngày lập');
+							}
+						},
+					],
+					'ngayhieuluc' => [
+						
+						function ($attribute, $value, $fail) use ($request) {
+							if (!(strtotime($request->ngayky) <= strtotime($value))) {
+								$fail('Ngày hiệu lực phải lớn hơn hoặc bằng ngày ký');
+							}
+						},
+					],
+					'ngaychuyen' => 
 					function ($attribute, $value, $fail) use ($request) {
-						if (!(strtotime($request->ngaylap) <= strtotime($value))) {
-							$fail('Ngày ký phải lớn hơn hoặc bằng ngày lập');
+						if (!(strtotime($request->ngayhieuluc) <= strtotime($value))) {
+							$fail('Ngày chuyển phải lớn hơn hoặc bằng ngày hiệu lực');
 						}
 					},
 				],
-				'ngayhieuluc' => [
-					
-					function ($attribute, $value, $fail) use ($request) {
-						if (!(strtotime($request->ngayky) <= strtotime($value))) {
-							$fail('Ngày hiệu lực phải lớn hơn hoặc bằng ngày ký');
-						}
-					},
-				],
-				'ngaychuyen' => 
-				function ($attribute, $value, $fail) use ($request) {
-					if (!(strtotime($request->ngayhieuluc) <= strtotime($value))) {
-						$fail('Ngày chuyển phải lớn hơn hoặc bằng ngày hiệu lực');
-					}
-				},
-			],
-			[
-				'sohieu.required' => 'Bạn phải nhập số hiệu',
-				'sohieu.min' => 'Bạn phải nhập số hiệu lớn từ 3 đến 15 ký tự',
-				'sohieu.max' => 'Bạn phải nhập số hiệu lớn từ 3 đến 15 ký tự',
+				[
+					'sohieu.required' => 'Bạn phải nhập số hiệu',
+					'sohieu.min' => 'Bạn phải nhập số hiệu lớn từ 3 đến 15 ký tự',
+					'sohieu.max' => 'Bạn phải nhập số hiệu lớn từ 3 đến 15 ký tự',
 
-				'trichyeunoidung.required' => 'Bạn phải nhập trích yếu nội dung',
-				'trichyeunoidung.min' => 'Bạn phải nhập trích yếu nội dung lớn từ 5 đến 100 ký tự',
-				'trichyeunoidung.max' => 'Bạn phải nhập trích yếu nội dung lớn từ 5 đến 100 ký tự',
+					'trichyeunoidung.required' => 'Bạn phải nhập trích yếu nội dung',
+					'trichyeunoidung.min' => 'Bạn phải nhập trích yếu nội dung lớn từ 5 đến 100 ký tự',
+					'trichyeunoidung.max' => 'Bạn phải nhập trích yếu nội dung lớn từ 5 đến 100 ký tự',
 
-				'taptindinhkem.required' => 'Bạn phải chọn tập tin đính kèm',
-				'taptindinhkem.mimes' => 'Tiệp đính kèm định dạng phải là jpeg, png, jpg, pdf.',
+					'taptindinhkem.required' => 'Bạn phải chọn tập tin đính kèm',
+					'taptindinhkem.mimes' => 'Tiệp đính kèm định dạng phải là jpeg, png, jpg, pdf.',
 
-				'ngaylap.after_or_equal' => 'Ngày lập phải lớn hơn hoặc bằng hiện tại',
-				// 'ngayky.date_format' => 'Bạn phải nhập ngày ký đúng định dạng ngày-tháng-năm',
-				// 'ngayhieuluc.date_format' => 'Bạn phải nhập ngày hiệu lực đúng định dạng ngày-tháng-năm',
-				// 'ngaychuyen.date_format' => 'Bạn phải nhập ngày chuyển đúng định dạng ngày-tháng-năm',
+					'ngaylap.after_or_equal' => 'Ngày lập phải lớn hơn hoặc bằng hiện tại',
+					// 'ngayky.date_format' => 'Bạn phải nhập ngày ký đúng định dạng ngày-tháng-năm',
+					// 'ngayhieuluc.date_format' => 'Bạn phải nhập ngày hiệu lực đúng định dạng ngày-tháng-năm',
+					// 'ngaychuyen.date_format' => 'Bạn phải nhập ngày chuyển đúng định dạng ngày-tháng-năm',
 
-			]);
+				]);
+			
+			$congvan = new CongVan;
+			$congvan->sohieu = $request->sohieu;
+			$congvan->trichyeunoidung = $request->trichyeunoidung;
+			$congvan->nguoiky = $request->nguoiky;
+
+			$congvan->idcoquanbanhanh = intval($request->CoQuanBanHanh);
+			$congvan->idhinhthucvanban = intval($request->HinhThucVanBan);
+			$congvan->idlinhvuc = intval($request->LinhVuc);
+			$congvan->idloaihinhcongvan = intval($request->LoaiHinhCongVan);
+			$congvan->idloaivanban = intval($request->LoaiVanBan);
+
+			$congvan->ngaylap = $request->ngaylap;
+			$congvan->ngayky = $request->ngayky;
+			$congvan->ngayhieuluc = $request->ngayhieuluc;
+			$congvan->ngaychuyen = $request->ngaychuyen;
+			$congvan->congkhai = $request->congkhai ?? null;
+
+			//Lưu bản scan
+			if ($request->hasFile('taptindinhkem')) {
+				$file = $request->file('taptindinhkem');
+				$fileName = time() . '_' . $file->getClientOriginalName();
+				$file->storeAs('scanned_documents', $fileName, 'public');
 		
-		$congvan = new CongVan;
-		$congvan->sohieu = $request->sohieu;
-		$congvan->trichyeunoidung = $request->trichyeunoidung;
-		$congvan->nguoiky = $request->nguoiky;
-
-		$congvan->idcoquanbanhanh = intval($request->CoQuanBanHanh);
-		$congvan->idhinhthucvanban = intval($request->HinhThucVanBan);
-		$congvan->idlinhvuc = intval($request->LinhVuc);
-		$congvan->idloaihinhcongvan = intval($request->LoaiHinhCongVan);
-		$congvan->idloaivanban = intval($request->LoaiVanBan);
-
-		$congvan->ngaylap = $request->ngaylap;
-		$congvan->ngayky = $request->ngayky;
-		$congvan->ngayhieuluc = $request->ngayhieuluc;
-		$congvan->ngaychuyen = $request->ngaychuyen;
-		$congvan->congkhai = $request->congkhai ?? null;
-
-		//Lưu bản scan
-		if ($request->hasFile('taptindinhkem')) {
-			$file = $request->file('taptindinhkem');
-			$fileName = time() . '_' . $file->getClientOriginalName();
-			$file->storeAs('scanned_documents', $fileName, 'public');
-	
-			// Save the file name or path in your database, associate it with the form data
-			$congvan->tentaptindinhkem = 'scanned_documents/' . $fileName;
-		}
+				// Save the file name or path in your database, associate it with the form data
+				$congvan->tentaptindinhkem = 'scanned_documents/' . $fileName;
+			}
 
 
-		$congvan->TenKhongDau = changeTitle($request->trichyeunoidung);
+			$congvan->TenKhongDau = changeTitle($request->trichyeunoidung);
 
-		$congvan->save();
+			$congvan->save();
 
-		//thêm dữ liệu vào bảng trung gian users - công văn
-		if($request->nguoiky) {
-			$user_congvan = new User_CongVan;
-			$user_congvan->user_id = auth()->user()->id;
-			$user_congvan->congvan_id = $congvan->id;
-			$user_congvan->nguoiky_id = $request->nguoiky;
-			$user_congvan->save();
-		}
+			//thêm dữ liệu vào bảng trung gian users - công văn
+			if($request->nguoiky) {
+				$user_congvan = new User_CongVan;
+				$user_congvan->user_id = auth()->user()->id;
+				$user_congvan->congvan_id = $congvan->id;
+				$user_congvan->nguoiky_id = $request->nguoiky;
+				$user_congvan->save();
+			}
 
-		$phongBan = PhongBan::whereHas('users', function ($query) {
-			$query->where('users.id', auth()->id());
-		}, '>', 0)->first();
+			$phongBan = PhongBan::whereHas('users', function ($query) {
+				$query->where('users.id', auth()->id());
+			}, '>', 0)->first();
 
-		//thêm dữ liệu vào bảng trung gian công văn - phòng ban
-		if($request->PhongBan) {
-			$congvan_phongban = new CongVanPhongBan;
-			$congvan_phongban->congvan_id = $congvan->id;
-			$congvan_phongban->phongban_id = $request->PhongBan;
-		} else {
-			$congvan_phongban = new CongVanPhongBan;
-			$congvan_phongban->congvan_id = $congvan->id;
-			$congvan_phongban->phongban_id = $phongBan->id;
-		}
-		$congvan_phongban->save();
-
+			//thêm dữ liệu vào bảng trung gian công văn - phòng ban
+			if($request->PhongBan) {
+				$congvan_phongban = new CongVanPhongBan;
+				$congvan_phongban->congvan_id = $congvan->id;
+				$congvan_phongban->phongban_id = $request->PhongBan;
+			} else {
+				$congvan_phongban = new CongVanPhongBan;
+				$congvan_phongban->congvan_id = $congvan->id;
+				$congvan_phongban->phongban_id = $phongBan->id;
+			}
+			$congvan_phongban->save();
+		});
 		return redirect('admin/congvan/them')->with('thongbao', 'Thêm thành công');
 
 	}
@@ -268,90 +289,98 @@ class CongVanController extends Controller {
 	}
 
 	public function postSua(Request $request, $id) {
-		$congvan = CongVan::find($id);
-		$this->validate($request,
-			[
-				'sohieu' => 'required|min:3|max:15',
+		DB::transaction(function () use ($id, $request) {
+			$congvan = CongVan::find($id);
+			$this->validate($request,
+				[
+					'sohieu' => 'required|min:3|max:15',
 
-				'trichyeunoidung' => 'required|min:5|max:100',
+					'trichyeunoidung' => 'required|min:5|max:100',
 
-				'taptindinhkem' => 'image|mimes:jpeg,png,jpg,pdf|max:2048', 
-			],
-			[
-				'sohieu.required' => 'Bạn phải nhập số hiệu',
-				'sohieu.min' => 'Bạn phải nhập số hiệu lớn từ 3 đến 15 ký tự',
-				'sohieu.max' => 'Bạn phải nhập số hiệu lớn từ 3 đến 15 ký tự',
+					'taptindinhkem' => 'image|mimes:jpeg,png,jpg,pdf|max:2048', 
+				],
+				[
+					'sohieu.required' => 'Bạn phải nhập số hiệu',
+					'sohieu.min' => 'Bạn phải nhập số hiệu lớn từ 3 đến 15 ký tự',
+					'sohieu.max' => 'Bạn phải nhập số hiệu lớn từ 3 đến 15 ký tự',
 
-				'trichyeunoidung.required' => 'Bạn phải nhập trích yếu nội dung',
-				'trichyeunoidung.min' => 'Bạn phải nhập trích yếu nội dung lớn từ 5 đến 100 ký tự',
-				'trichyeunoidung.max' => 'Bạn phải nhập trích yếu nội dung lớn từ 5 đến 100 ký tự',
+					'trichyeunoidung.required' => 'Bạn phải nhập trích yếu nội dung',
+					'trichyeunoidung.min' => 'Bạn phải nhập trích yếu nội dung lớn từ 5 đến 100 ký tự',
+					'trichyeunoidung.max' => 'Bạn phải nhập trích yếu nội dung lớn từ 5 đến 100 ký tự',
 
-				'taptindinhkem.mimes' => 'Tiệp đính kèm định dạng phải là jpeg, png, jpg, pdf.',
-			]);
+					'taptindinhkem.mimes' => 'Tiệp đính kèm định dạng phải là jpeg, png, jpg, pdf.',
+				]);
 
-		$congvan->sohieu = $request->sohieu;
-		$congvan->trichyeunoidung = $request->trichyeunoidung;
-		$congvan->nguoiky = $request->nguoiky;
+			$congvan->sohieu = $request->sohieu;
+			$congvan->trichyeunoidung = $request->trichyeunoidung;
+			$congvan->nguoiky = $request->nguoiky;
 
-		$congvan->idcoquanbanhanh = intval($request->CoQuanBanHanh);
-		$congvan->idhinhthucvanban = intval($request->HinhThucVanBan);
-		$congvan->idlinhvuc = intval($request->LinhVuc);
-		$congvan->idloaihinhcongvan = intval($request->LoaiHinhCongVan);
-		$congvan->idloaivanban = intval($request->LoaiVanBan);
+			$congvan->idcoquanbanhanh = intval($request->CoQuanBanHanh);
+			$congvan->idhinhthucvanban = intval($request->HinhThucVanBan);
+			$congvan->idlinhvuc = intval($request->LinhVuc);
+			$congvan->idloaihinhcongvan = intval($request->LoaiHinhCongVan);
+			$congvan->idloaivanban = intval($request->LoaiVanBan);
 
-		$congvan->ngaylap = $request->ngaylap;
-		$congvan->ngayky = $request->ngayky;
-		$congvan->ngayhieuluc = $request->ngayhieuluc;
-		$congvan->ngaychuyen = $request->ngaychuyen;
-		$congvan->congkhai = $request->congkhai ?? null;
-		$congvan->is_active = false;
+			$congvan->ngaylap = $request->ngaylap;
+			$congvan->ngayky = $request->ngayky;
+			$congvan->ngayhieuluc = $request->ngayhieuluc;
+			$congvan->ngaychuyen = $request->ngaychuyen;
+			$congvan->congkhai = $request->congkhai ?? null;
+			$congvan->is_active = false;
 
-		if ($request->hasFile('taptindinhkem')) {
-			$file = $request->file('taptindinhkem');
-			$fileName = time() . '_' . $file->getClientOriginalName();
-			$file->storeAs('scanned_documents', $fileName, 'public');
-	
-			// Save the file name or path in your database, associate it with the form data
-			$congvan->tentaptindinhkem = 'scanned_documents/' . $fileName;
-		}
+			if ($request->hasFile('taptindinhkem')) {
+				$file = $request->file('taptindinhkem');
+				$fileName = time() . '_' . $file->getClientOriginalName();
+				$file->storeAs('scanned_documents', $fileName, 'public');
+		
+				// Save the file name or path in your database, associate it with the form data
+				$congvan->tentaptindinhkem = 'scanned_documents/' . $fileName;
+			}
 
-		$congvan->TenKhongDau = changeTitle($request->trichyeunoidung);
+			$congvan->TenKhongDau = changeTitle($request->trichyeunoidung);
 
-		$congvan->save();
+			$congvan->save();
 
-		//thêm dữ liệu vào bảng trung gian users - công văn
-		if($request->nguoiky) {
-			$user_congvan = new User_CongVan;
-			$user_congvan->user_id = auth()->user()->id;
-			$user_congvan->congvan_id = $congvan->id;
-			$user_congvan->nguoiky_id = $request->nguoiky;
-			$user_congvan->save();
-		}
+			//thêm dữ liệu vào bảng trung gian users - công văn
+			if($request->nguoiky) {
+				$user_congvan = new User_CongVan;
+				$user_congvan->user_id = auth()->user()->id;
+				$user_congvan->congvan_id = $congvan->id;
+				$user_congvan->nguoiky_id = $request->nguoiky;
+				$user_congvan->save();
+			}
 
-		$phongBan = PhongBan::whereHas('users', function ($query) {
-			$query->where('users.id', auth()->id());
-		}, '>', 0)->first();
+			$phongBan = PhongBan::whereHas('users', function ($query) {
+				$query->where('users.id', auth()->id());
+			}, '>', 0)->first();
 
-		//thêm dữ liệu vào bảng trung gian công văn - phòng ban
-		if($request->PhongBan) {
-			$congvan_phongban = new CongVanPhongBan;
-			$congvan_phongban->congvan_id = $congvan->id;
-			$congvan_phongban->phongban_id = $request->PhongBan;
-		} else {
-			$congvan_phongban = new CongVanPhongBan;
-			$congvan_phongban->congvan_id = $congvan->id;
-			$congvan_phongban->phongban_id = $phongBan->id;
-		}
-		$congvan_phongban->save();
-
+			//thêm dữ liệu vào bảng trung gian công văn - phòng ban
+			if($request->PhongBan) {
+				$congvan_phongban = new CongVanPhongBan;
+				$congvan_phongban->congvan_id = $congvan->id;
+				$congvan_phongban->phongban_id = $request->PhongBan;
+			} else {
+				$congvan_phongban = new CongVanPhongBan;
+				$congvan_phongban->congvan_id = $congvan->id;
+				$congvan_phongban->phongban_id = $phongBan->id;
+			}
+			$congvan_phongban->save();
+		});
 		return redirect('admin/congvan/sua/' . $id)->with('thongbao', 'Sửa thành công');
 
 	}
 
 	public function getXoa($id) {
-		$congvan = CongVan::find($id);
-		$congvan->delete();
+		DB::transaction(function () use ($id) {
+			$congvan = CongVan::find($id);
+			$congvan->delete();
 
+			$congvan_phongban = CongVanPhongBan::where('congvan_id', $id)->first();
+			$congvan_phongban->delete();
+
+			$user_congvan = CongVanPhongBan::where('congvan_id', $id)->first();
+			$user_congvan->delete();
+		});
 		return redirect('admin/congvan/danhsach')->with('thongbao', 'Xoá thành công');
 	}
 
