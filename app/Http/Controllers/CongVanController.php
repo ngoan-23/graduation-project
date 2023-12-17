@@ -164,6 +164,8 @@ class CongVanController extends Controller {
 
 					'taptindinhkem' => 'required|image|mimes:jpeg,png,jpg,pdf|max:2048', 
 
+					'LoaiHinhCongVan' => 'required',
+
 					'ngaylap' => 'after_or_equal:today',
 
 					'ngayky' => [
